@@ -11,7 +11,7 @@ cors = CORS(app)
 
 # MySQL configuration
 db_config = {
-    'host': 'localhost',
+    'host': 'db',
     'user': 'warframe_user',
     'password': 'secure_password_123',
     'database': 'warframe'
@@ -273,8 +273,6 @@ def internal_error(error):
 
 if __name__ == '__main__':
     print("Starting Warframe Relic Search API...")
-    if 'DB_HOST' in environ:
-        db_config['host'] = environ['DB_HOST']
     print("Available endpoints:")
     print("- GET /api/search?q=<search_term> - Search relics")
     print("- GET /api/search/advanced?q=<search_term>&field=<field> - Advanced search")
