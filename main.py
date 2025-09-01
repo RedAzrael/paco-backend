@@ -60,7 +60,7 @@ def search_relics():
             sql_query = """
             SELECT DISTINCT
                 r.id AS id,
-                r.name AS name,
+                r.name AS name
             FROM
                 relics r
                 LEFT JOIN items i1 ON r.common1 = i1.id
@@ -70,19 +70,19 @@ def search_relics():
                 LEFT JOIN items i5 ON r.uncommon2 = i5.id
                 LEFT JOIN items i6 ON r.rare = i6.id
             WHERE
-                r.name LIKE ?
-                OR i1.name LIKE ?
-                OR i1.description LIKE ?
-                OR i2.name LIKE ?
-                OR i2.description LIKE ?
-                OR i3.name LIKE ?
-                OR i3.description LIKE ?
-                OR i4.name LIKE ?
-                OR i4.description LIKE ?
-                OR i5.name LIKE ?
-                OR i5.description LIKE ?
-                OR i6.name LIKE ?
-                OR i6.description LIKE ?;
+                r.name LIKE %s
+                OR i1.name LIKE %s
+                OR i1.description LIKE %s
+                OR i2.name LIKE %s
+                OR i2.description LIKE %s
+                OR i3.name LIKE %s
+                OR i3.description LIKE %s
+                OR i4.name LIKE %s
+                OR i4.description LIKE %s
+                OR i5.name LIKE %s
+                OR i5.description LIKE %s
+                OR i6.name LIKE %s
+                OR i6.description LIKE %s;
                 """
             search_param = f"%{search_query}%"
 
