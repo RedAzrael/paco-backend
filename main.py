@@ -23,7 +23,7 @@ def get_db_connection():
         conn = mysql.connector.connect(**db_config)
         return conn
     except Error as e:
-        print(f"Error connecting to MySQL: {e}")
+        print(f"Error connecting to MySQL: {e}", file=sys.stderr)
         return None
 
 @app.route('/relics', methods=['GET'])
