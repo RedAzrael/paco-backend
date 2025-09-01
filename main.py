@@ -70,23 +70,23 @@ def search_relics():
                 LEFT JOIN items i5 ON r.uncommon2 = i5.id
                 LEFT JOIN items i6 ON r.rare = i6.id
             WHERE
-                r.name LIKE '%s'
-                OR i1.name LIKE '%s'
-                OR i1.description LIKE '%s'
-                OR i2.name LIKE '%s'
-                OR i2.description LIKE '%s'
-                OR i3.name LIKE '%s'
-                OR i3.description LIKE '%s'
-                OR i4.name LIKE '%s'
-                OR i4.description LIKE '%s'
-                OR i5.name LIKE '%s'
-                OR i5.description LIKE '%s'
-                OR i6.name LIKE '%s'
-                OR i6.description LIKE '%s';
+                r.name LIKE ?
+                OR i1.name LIKE ?
+                OR i1.description LIKE ?
+                OR i2.name LIKE ?
+                OR i2.description LIKE ?
+                OR i3.name LIKE ?
+                OR i3.description LIKE ?
+                OR i4.name LIKE ?
+                OR i4.description LIKE ?
+                OR i5.name LIKE ?
+                OR i5.description LIKE ?
+                OR i6.name LIKE ?
+                OR i6.description LIKE ?;
                 """
             search_param = f"%{search_query}%"
 
-            cursor.execute(sql_query, (search_param,))
+            cursor.execute(sql_query, (search_param,) * 13)
             results = cursor.fetchall()
 
             # Format results for frontend consumption
