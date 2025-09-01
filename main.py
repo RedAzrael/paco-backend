@@ -8,6 +8,7 @@ app = Flask(__name__)
 
 # Enable CORS for all routes to allow React frontend to connect
 cors = CORS(app)
+app.config['CORS_HEADERS'] = 'Content-Type'
 
 # MySQL configuration
 db_config = {
