@@ -3,6 +3,7 @@ from flask_cors import CORS, cross_origin
 import mysql.connector
 from mysql.connector import Error
 from os import environ
+import sys
 
 app = Flask(__name__)
 
