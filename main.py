@@ -47,22 +47,48 @@ def search_relics():
     Expects a 'q' query parameter with the search term.
     """
     search_query = request.args.get('q', '').strip()
-    
+
     if not search_query:
         return jsonify({'error': 'No search query provided'}), 400
-    
+
     conn = get_db_connection()
     if conn:
         try:
             cursor = conn.cursor(dictionary=True)
-            
+
             # Search for relics where name contains the search query (case-insensitive)
-            sql_query = "SELECT id, name FROM relics WHERE name LIKE %s ORDER BY name"
+            sql_query = """
+            SELECT DISTINCT
+                r.id AS id,
+                r.name AS name,
+            FROM
+                relics r
+                LEFT JOIN items i1 ON r.common1 = i1.id
+                LEFT JOIN items i2 ON r.common2 = i2.id
+                LEFT JOIN items i3 ON r.common3 = i3.id
+                LEFT JOIN items i4 ON r.uncommon1 = i4.id
+                LEFT JOIN items i5 ON r.uncommon2 = i5.id
+                LEFT JOIN items i6 ON r.rare = i6.id
+            WHERE
+                r.name LIKE '%s'
+                OR i1.name LIKE '%s'
+                OR i1.description LIKE '%s'
+                OR i2.name LIKE '%s'
+                OR i2.description LIKE '%s'
+                OR i3.name LIKE '%s'
+                OR i3.description LIKE '%s'
+                OR i4.name LIKE '%s'
+                OR i4.description LIKE '%s'
+                OR i5.name LIKE '%s'
+                OR i5.description LIKE '%s'
+                OR i6.name LIKE '%s'
+                OR i6.description LIKE '%s';
+                """
             search_param = f"%{search_query}%"
-            
+
             cursor.execute(sql_query, (search_param,))
             results = cursor.fetchall()
-            
+
             # Format results for frontend consumption
             formatted_results = []
             for relic in results:
@@ -71,20 +97,20 @@ def search_relics():
                     'title': relic['name'],
                     'description': f"Relic ID: {relic['id']}"
                 })
-            
+
             return jsonify({
                 'results': formatted_results,
                 'total_count': len(formatted_results),
                 'search_query': search_query
             }), 200
-            
+
         except Error as e:
             print(f"Database error: {e}")
             return jsonify({'error': 'Database query failed'}), 500
         finally:
             cursor.close()
             conn.close()
-    
+
     return jsonify({'error': 'Database connection failed'}), 500
 
 @app.route('/api/search/advanced', methods=['GET'])
@@ -95,20 +121,20 @@ def advanced_search():
     """
     search_query = request.args.get('q', '').strip()
     search_field = request.args.get('field', 'name')  # Default to searching by name
-    
+
     if not search_query:
         return jsonify({'error': 'No search query provided'}), 400
-    
+
     # Validate search field to prevent SQL injection
     allowed_fields = ['id', 'name']
     if search_field not in allowed_fields:
         search_field = 'name'
-    
+
     conn = get_db_connection()
     if conn:
         try:
             cursor = conn.cursor(dictionary=True)
-            
+
             # Dynamic query based on field
             if search_field == 'id':
                 # Exact match for ID search
@@ -119,9 +145,9 @@ def advanced_search():
                 sql_query = f"SELECT id, name FROM relics WHERE {search_field} LIKE %s ORDER BY name"
                 search_param = f"%{search_query}%"
                 cursor.execute(sql_query, (search_param,))
-            
+
             results = cursor.fetchall()
-            
+
             # Format results
             formatted_results = []
             for relic in results:
@@ -131,21 +157,21 @@ def advanced_search():
                     'description': f"Relic ID: {relic['id']}",
                     'search_field': search_field
                 })
-            
+
             return jsonify({
                 'results': formatted_results,
                 'total_count': len(formatted_results),
                 'search_query': search_query,
                 'search_field': search_field
             }), 200
-            
+
         except Error as e:
             print(f"Database error: {e}")
             return jsonify({'error': 'Database query failed'}), 500
         finally:
             cursor.close()
             conn.close()
-    
+
     return jsonify({'error': 'Database connection failed'}), 500
 
 @app.route('/api/health', methods=['GET'])
@@ -178,5 +204,5 @@ if __name__ == '__main__':
     print("- GET /api/search/advanced?q=<search_term>&field=<field> - Advanced search")
     print("- GET /relics - Get all relics")
     print("- GET /api/health - Health check")
-    
+
     app.run(debug=True, host='0.0.0.0', port=3001)
