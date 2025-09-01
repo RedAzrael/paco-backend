@@ -8,7 +8,6 @@ app = Flask(__name__)
 
 # Enable CORS for all routes to allow React frontend to connect
 cors = CORS(app)
-app.config['CORS_HEADERS'] = 'Content-Type'
 
 # MySQL configuration
 db_config = {
@@ -28,7 +27,6 @@ def get_db_connection():
         return None
 
 @app.route('/relics', methods=['GET'])
-@cross_origin()
 def get_relics():
     conn = get_db_connection()
     if conn:
@@ -45,7 +43,6 @@ def get_relics():
     return jsonify({'error': 'Database connection failed'}), 500
 
 @app.route('/api/search', methods=['GET'])
-@cross_origin()
 def search_relics():
     """
     Search endpoint compatible with the React frontend.
@@ -190,7 +187,6 @@ def search_relics():
     return jsonify({'error': 'Database connection failed'}), 500
 
 @app.route('/api/search/advanced', methods=['GET'])
-@cross_origin()
 def advanced_search():
     """
     Advanced search endpoint that searches multiple fields if your database has them.
@@ -252,7 +248,6 @@ def advanced_search():
     return jsonify({'error': 'Database connection failed'}), 500
 
 @app.route('/api/health', methods=['GET'])
-@cross_origin()
 def health_check():
     """
     Simple health check endpoint to verify the API is running.
