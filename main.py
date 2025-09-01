@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import mysql.connector
 from mysql.connector import Error
+from os import environ
 
 app = Flask(__name__)
 
@@ -15,6 +16,7 @@ db_config = {
     'password': 'secure_password_123',
     'database': 'warframe'
 }
+
 
 def get_db_connection():
     try:
@@ -47,29 +49,55 @@ def search_relics():
     Expects a 'q' query parameter with the search term.
     """
     search_query = request.args.get('q', '').strip()
-    
+
     if not search_query:
         return jsonify({'error': 'No search query provided'}), 400
-    
+
     conn = get_db_connection()
     if conn:
         try:
             cursor = conn.cursor(dictionary=True)
-            
+
             # Search for relics where name contains the search query (case-insensitive)
-            sql_query = "SELECT id, name FROM relics WHERE name LIKE %s ORDER BY name"
+            sql_query = sql_query = """
+            SELECT DISTINCT
+                r.id AS id,
+                r.name AS name
+            FROM
+                relics r
+                 LEFT JOIN items i1 ON r.common1 = i1.id
+                 LEFT JOIN items i2 ON r.common2 = i2.id
+                 LEFT JOIN items i3 ON r.common3 = i3.id
+                 LEFT JOIN items i4 ON r.uncommon1 = i4.id
+                 LEFT JOIN items i5 ON r.uncommon2 = i5.id
+                 LEFT JOIN items i6 ON r.rare = i6.id
+            WHERE
+                r.name LIKE %s
+                OR i1.name LIKE %s
+                OR i1.description LIKE %s
+                OR i2.name LIKE %s
+                OR i2.description LIKE %s
+                OR i3.name LIKE %s
+                OR i3.description LIKE %s
+                OR i4.name LIKE %s
+                OR i4.description LIKE %s
+                OR i5.name LIKE %s
+                OR i5.description LIKE %s
+                OR i6.name LIKE %s
+                OR i6.description LIKE %s;
+                """
             search_param = f"%{search_query}%"
-            
-            cursor.execute(sql_query, (search_param,))
+
+            cursor.execute(sql_query, (search_param,) * 13)
             results = cursor.fetchall()
-            
+
             # Format results for frontend consumption with detailed information
             formatted_results = []
             for relic in results:
                 # Get detailed relic information including items
                 relic_cursor = conn.cursor(dictionary=True)
                 detailed_query = """
-                SELECT 
+                SELECT
                     r.id AS relic_id,
                     r.name AS relic_name,
                     i1.name AS common1_name,
@@ -90,11 +118,11 @@ def search_relics():
                 relic_cursor.execute(detailed_query, (relic['id'],))
                 relic_details = relic_cursor.fetchone()
                 relic_cursor.close()
-                
+
                 if relic_details:
                     # Check if search matched relic name
                     relic_name_match = search_query.lower() in relic['name'].lower()
-                    
+
                     # Check if search matched any item name
                     item_matches = []
                     items_info = [
@@ -105,11 +133,11 @@ def search_relics():
                         (relic_details['uncommon2_name'], 'Uncommon'),
                         (relic_details['rare_name'], 'Rare')
                     ]
-                    
+
                     for item_name, rarity in items_info:
                         if item_name and search_query.lower() in item_name.lower():
                             item_matches.append((item_name, rarity))
-                    
+
                     # Format description based on what was matched
                     if relic_name_match:
                         # Search included relic name - show relic and all its items with rarities
@@ -129,7 +157,7 @@ def search_relics():
                     else:
                         # Fallback - shouldn't happen with the current query but just in case
                         description = f"Relic: {relic['name']} (ID: {relic['id']})"
-                    
+
                     formatted_results.append({
                         'id': relic['id'],
                         'title': relic['name'],
@@ -142,20 +170,20 @@ def search_relics():
                         'title': relic['name'],
                         'description': f"Relic ID: {relic['id']}"
                     })
-            
+
             return jsonify({
                 'results': formatted_results,
                 'total_count': len(formatted_results),
                 'search_query': search_query
             }), 200
-            
+
         except Error as e:
             print(f"Database error: {e}")
             return jsonify({'error': 'Database query failed'}), 500
         finally:
             cursor.close()
             conn.close()
-    
+
     return jsonify({'error': 'Database connection failed'}), 500
 
 @app.route('/api/search/advanced', methods=['GET'])
@@ -166,20 +194,20 @@ def advanced_search():
     """
     search_query = request.args.get('q', '').strip()
     search_field = request.args.get('field', 'name')  # Default to searching by name
-    
+
     if not search_query:
         return jsonify({'error': 'No search query provided'}), 400
-    
+
     # Validate search field to prevent SQL injection
     allowed_fields = ['id', 'name']
     if search_field not in allowed_fields:
         search_field = 'name'
-    
+
     conn = get_db_connection()
     if conn:
         try:
             cursor = conn.cursor(dictionary=True)
-            
+
             # Dynamic query based on field
             if search_field == 'id':
                 # Exact match for ID search
@@ -190,9 +218,9 @@ def advanced_search():
                 sql_query = f"SELECT id, name FROM relics WHERE {search_field} LIKE %s ORDER BY name"
                 search_param = f"%{search_query}%"
                 cursor.execute(sql_query, (search_param,))
-            
+
             results = cursor.fetchall()
-            
+
             # Format results
             formatted_results = []
             for relic in results:
@@ -202,21 +230,21 @@ def advanced_search():
                     'description': f"Relic ID: {relic['id']}",
                     'search_field': search_field
                 })
-            
+
             return jsonify({
                 'results': formatted_results,
                 'total_count': len(formatted_results),
                 'search_query': search_query,
                 'search_field': search_field
             }), 200
-            
+
         except Error as e:
             print(f"Database error: {e}")
             return jsonify({'error': 'Database query failed'}), 500
         finally:
             cursor.close()
             conn.close()
-    
+
     return jsonify({'error': 'Database connection failed'}), 500
 
 @app.route('/api/health', methods=['GET'])
@@ -244,10 +272,11 @@ def internal_error(error):
 
 if __name__ == '__main__':
     print("Starting Warframe Relic Search API...")
+    if 'DB_HOST' in environ:
+        db_config['host'] = environ['DB_HOST']
     print("Available endpoints:")
     print("- GET /api/search?q=<search_term> - Search relics")
     print("- GET /api/search/advanced?q=<search_term>&field=<field> - Advanced search")
     print("- GET /relics - Get all relics")
     print("- GET /api/health - Health check")
-    
     app.run(debug=True, host='0.0.0.0', port=3001)
